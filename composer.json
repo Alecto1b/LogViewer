@@ -13,7 +13,10 @@
         }
     },
     "scripts": {
-        "test": "@php tests/run.php"
+        "test": [
+            "@php tests/vendorless.php",
+            "@php tests/run.php"
+        ]
     },
     "authors": [
         {
