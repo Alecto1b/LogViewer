@@ -12,6 +12,12 @@ Only Leconfe administrators can access the viewer or its signed download endpoin
 - Filament 5
 - PHP 8.3 or newer
 
+## Installation
+
+Zip the `LogViewer` repository folder and upload the archive from Leconfe's Plugin Management page. The archive must contain a single top-level folder named `LogViewer`.
+
+Composer is not required on the target server. The plugin can load its PHP classes directly from `src/`, while the compiled browser assets are already included in `public/`.
+
 ## Development
 
 Install the frontend dependencies and compile the bundled assets:
