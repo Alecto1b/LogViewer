@@ -54,5 +54,7 @@ class LogViewerPlugin extends Plugin
         Route::middleware(['web', 'auth', 'admin', 'signed'])
             ->get('/plugin/log-viewer/download', DownloadLogController::class)
             ->name(static::DOWNLOAD_ROUTE);
+
+        Route::getRoutes()->refreshNameLookups();
     }
 }
