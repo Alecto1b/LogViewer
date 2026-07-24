@@ -2,35 +2,32 @@
 
 namespace LogViewer\Pages;
 
-use App\Facades\Plugin;
+use App\Facades\Plugin as PluginFacade;
+use App\Models\Enums\UserRole;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
-use Filament\Forms\Components\Actions\Action as FormAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
-use Filament\Forms\Form;
-use Filament\Forms\Get;
 use Filament\Pages\Page;
+use Filament\Schemas\Schema;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\File;
-use Livewire\Attributes\Locked;
+use Illuminate\Support\Facades\URL;
+use LogViewer\LogViewerPlugin;
+use LogViewer\Support\LogFile;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Finder\SplFileInfo;
 
-class LogViewerPage extends Page implements HasForms, HasActions
+class LogViewerPage extends Page implements HasActions, HasForms
 {
-    use InteractsWithForms, InteractsWithActions;
+    use InteractsWithActions, InteractsWithForms;
 
     protected static ?string $title = 'Log Viewer';
 
-    protected static string $view = 'LogViewer::log-viewer';
+    protected string $view = 'LogViewer::log-viewer';
 
     protected static bool $shouldRegisterNavigation = false;
-
-    #[Locked]
-    public array $options = [];
 
     public ?string $logFile = null;
 
@@ -41,28 +38,26 @@ class LogViewerPage extends Page implements HasForms, HasActions
         $this->form->fill();
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form->schema([
+        return $schema->schema([
             Select::make('logFile')
                 ->label(false)
                 ->placeholder('Select for a log file')
                 ->lazy()
                 ->searchable()
                 ->options($this->getFileNames($this->getFinder()))
-                ->afterStateUpdated(fn() => $this->refresh())
-                ->suffixAction(
-                    FormAction::make('copyCostToPrice')
-                        ->icon('heroicon-c-arrow-down-tray')
-                        ->disabled(!$this->logFile)
-                        ->action(fn() => response()->download($this->logFile)),
-                ),
+                ->afterStateUpdated(fn () => $this->refresh())
+                ->suffixActions([
+                    $this->downloadAction(),
+                    $this->clearAction(),
+                ]),
         ]);
     }
 
     public static function canAccess(): bool
     {
-        return auth()->user()->can('viewAny', Plugin::class);
+        return auth()->user()?->hasRole(UserRole::Admin) ?? false;
     }
 
     public function refresh(): void
@@ -72,44 +67,38 @@ class LogViewerPage extends Page implements HasForms, HasActions
 
     protected function getFileNames($files): Collection
     {
-        return collect($files)->mapWithKeys(function (SplFileInfo $file) {
-            return [$file->getRealPath() => $file->getFilename()];
-        });
+        return collect($files)
+            ->reverse()
+            ->mapWithKeys(fn (SplFileInfo $file): array => [
+                $file->getRealPath() => $file->getFilename(),
+            ]);
     }
 
     protected function getFinder(): Finder
     {
         return once(
-            fn() => Finder::create()
+            fn () => Finder::create()
                 ->ignoreDotFiles(true)
                 ->ignoreUnreadableDirs()
                 ->files()
                 ->sortByModifiedTime()
                 ->in([storage_path('logs')])
-                ->notName([]),
+                ->name('*.log'),
         );
     }
 
     public function read(): string
     {
-        // check extension is log
-        if (!$this->logFile || pathinfo($this->logFile, PATHINFO_EXTENSION) !== 'log') {
-            $this->logFile = null;
-            return '';
-        }
-
-        return mb_convert_encoding(File::get($this->logFile), 'UTF-8', 'UTF-8');
+        return LogFile::readTail($this->logFile);
     }
 
     public function clear(): void
     {
-        if (!$this->logFile || pathinfo($this->logFile, PATHINFO_EXTENSION) !== 'log') {
-            $this->logFile = null;
-            return;
-        }
+        abort_unless(static::canAccess(), 403);
 
-        File::put($this->logFile, '');
-        $this->refresh();
+        if (LogFile::clear($this->logFile)) {
+            $this->refresh();
+        }
     }
 
     /**
@@ -117,7 +106,7 @@ class LogViewerPage extends Page implements HasForms, HasActions
      */
     protected function getViewData(): array
     {
-        $plugin = Plugin::getPlugin('LogViewer');
+        $plugin = PluginFacade::getPlugin('LogViewer');
 
         return [
             'css' => $plugin->asset('index.css'),
@@ -129,8 +118,8 @@ class LogViewerPage extends Page implements HasForms, HasActions
     {
         return Action::make('download')
             ->icon('heroicon-c-arrow-down-tray')
-            ->disabled(!$this->logFile)
-            ->action(fn() => response()->download($this->logFile));
+            ->disabled(fn (): bool => ! $this->resolveLogFile())
+            ->url(fn (): ?string => $this->getDownloadUrl());
     }
 
     public function clearAction(): Action
@@ -138,7 +127,31 @@ class LogViewerPage extends Page implements HasForms, HasActions
         return Action::make('clear')
             ->icon('heroicon-o-trash')
             ->requiresConfirmation()
-            ->disabled(!$this->logFile)
-            ->action(fn() => response()->download($this->logFile));
+            ->disabled(fn (): bool => ! $this->resolveLogFile())
+            ->action(fn () => $this->clear());
+    }
+
+    protected function resolveLogFile(): ?string
+    {
+        if (! $logFile = LogFile::resolve($this->logFile)) {
+            $this->logFile = null;
+
+            return null;
+        }
+
+        return $logFile;
+    }
+
+    protected function getDownloadUrl(): ?string
+    {
+        if (! $token = LogFile::token($this->logFile)) {
+            return null;
+        }
+
+        return URL::temporarySignedRoute(
+            LogViewerPlugin::DOWNLOAD_ROUTE,
+            now()->addMinutes(5),
+            ['file' => $token],
+        );
     }
 }

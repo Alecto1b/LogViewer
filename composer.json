@@ -1,9 +1,19 @@
 {
     "name": "leconfe/log-viewer",
+    "description": "View error logs directly from the Leconfe application",
+    "type": "leconfe-plugin",
+    "license": "MIT",
+    "require": {
+        "ext-mbstring": "*",
+        "php": "^8.3"
+    },
     "autoload": {
         "psr-4": {
             "LogViewer\\": "src/"
         }
+    },
+    "scripts": {
+        "test": "@php tests/run.php"
     },
     "authors": [
         {

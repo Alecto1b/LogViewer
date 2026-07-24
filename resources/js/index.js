@@ -1,33 +1,46 @@
-import ace from 'ace-builds'
-import 'ace-builds/src-noconflict/mode-ini'
+import ace from "ace-builds";
+import "ace-builds/src-noconflict/mode-ini";
 
-export default ({
-    maxLines,
-    minLines,
-    fontSize,
-}) => ({
-    /** @type {ace.Ace.Editor} */
-    editor: null,
+export default ({ maxLines, minLines, fontSize }) => ({
+  /** @type {ace.Ace.Editor} */
+  editor: null,
+  updateContentHandler: null,
 
-    init() {
-        this.editor = ace.edit(this.$refs.editor, {
-            mode: 'ace/mode/ini',
-            readOnly: true,
-            maxLines,
-            minLines,
-            fontSize
-        });
+  init() {
+    this.editor = ace.edit(this.$refs.editor, {
+      mode: "ace/mode/ini",
+      readOnly: true,
+      maxLines,
+      minLines,
+      fontSize,
+      showPrintMargin: false,
+    });
 
-        window.addEventListener('logContentUpdated', e => {
-            this.editor.session.setValue(e.detail.content)
-        })
-    },
+    this.updateContentHandler = (e) => {
+      this.editor.session.setValue(e.detail.content);
+    };
 
-    jumpToEnd() {
-        this.editor.gotoLine(this.editor.session.doc.$lines.length)
-    },
+    window.addEventListener("logContentUpdated", this.updateContentHandler);
+  },
 
-    jumpToStart() {
-        this.editor.gotoLine(0)
+  destroy() {
+    if (this.updateContentHandler) {
+      window.removeEventListener(
+        "logContentUpdated",
+        this.updateContentHandler,
+      );
+      this.updateContentHandler = null;
     }
-})
+
+    this.editor?.destroy();
+    this.editor = null;
+  },
+
+  jumpToEnd() {
+    this.editor.gotoLine(this.editor.session.doc.$lines.length);
+  },
+
+  jumpToStart() {
+    this.editor.gotoLine(0);
+  },
+});
