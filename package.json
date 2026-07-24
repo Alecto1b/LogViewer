@@ -7,8 +7,8 @@
     },
     "devDependencies": {
         "@shufo/prettier-plugin-blade": "^1.11.0",
-        "ace-builds": "^1.24.1",
-        "esbuild": "^0.19.2",
+        "ace-builds": "1.36.4",
+        "esbuild": "0.28.1",
         "prettier": "^3.0.3",
         "prettier-plugin-tailwindcss": "^0.1.13"
     }
