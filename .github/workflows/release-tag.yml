@@ -26,21 +26,10 @@ jobs:
       - name: Run PHP tests
         run: composer test
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Build frontend assets
-        run: |
-          npm ci
-          npm run build
-
       - name: Prepare repository in a single folder with repository name
         run: |
           mkdir -p ./release/${{ github.event.repository.name }}
-          rsync -av --progress ./ ./release/${{ github.event.repository.name }} --exclude release --exclude .git --exclude node_modules --exclude .github
+          rsync -av --progress ./ ./release/${{ github.event.repository.name }} --exclude release --exclude .git --exclude node_modules --exclude tests --exclude .github
 
       - name: Create zip archive
         run: |
