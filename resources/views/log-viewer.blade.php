@@ -1,13 +1,20 @@
 <x-filament-panels::page>
+    <link rel="stylesheet" href="{{ $css }}">
+
     <div
-        ax-load
-        ax-load-src="{{ $js }}"
-        ax-load-css="{{ $css }}"
-        x-data="editor({
-            maxLines: @js(35),
-            minLines: @js(10),
-            fontSize: @js(12)
-        })"
+        x-data="{
+            async init() {
+                const { default: makeEditor } = await import(@js($js))
+                const editor = makeEditor({
+                    maxLines: @js(35),
+                    minLines: @js(10),
+                    fontSize: @js(12)
+                })
+
+                Object.assign(this, editor)
+                editor.init.call(this)
+            }
+        }"
     >
         <div class="flex flex-wrap items-center justify-between gap-6">
             <div class="w-full">
