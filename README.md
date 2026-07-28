@@ -8,9 +8,10 @@ Only Leconfe administrators can access the viewer or its signed download endpoin
 
 ## Compatibility
 
-- Leconfe with Laravel 13
-- Filament 5
-- PHP 8.3 or newer
+- Leconfe 1.5.x with Laravel 10, Filament 3, and PHP 8.1 or newer
+- Leconfe 1.6.x with Laravel 13, Filament 5, and PHP 8.3 or newer
+
+The same plugin ZIP automatically selects the matching Filament implementation at runtime. Filament 4 is not supported.
 
 ## Development
 
