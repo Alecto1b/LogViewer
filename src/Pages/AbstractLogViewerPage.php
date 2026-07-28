@@ -74,7 +74,7 @@ abstract class AbstractLogViewerPage extends Page implements HasForms
     protected function makeLogFileSelect(): Select
     {
         return Select::make('logFile')
-            ->label(false)
+            ->hiddenLabel()
             ->placeholder('Select for a log file')
             ->lazy()
             ->searchable()
