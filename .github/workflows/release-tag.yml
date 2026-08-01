@@ -17,8 +17,16 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: "8.1"
+          php-version: "8.3"
           extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, dom, filter, gd, iconv, json, mbstring, pdo
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Validate Composer
+        run: composer validate --no-check-publish
 
       - name: Install PHP dependencies
         run: composer install --no-ansi --no-dev --no-interaction --no-plugins --no-progress --optimize-autoloader
@@ -26,10 +34,19 @@ jobs:
       - name: Run PHP tests
         run: composer test
 
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build frontend assets
+        run: npm run build
+
+      - name: Verify committed assets
+        run: git diff --exit-code -- public/index.js public/index.css
+
       - name: Prepare repository in a single folder with repository name
         run: |
           mkdir -p ./release/${{ github.event.repository.name }}
-          rsync -av --progress ./ ./release/${{ github.event.repository.name }} --exclude release --exclude .git --exclude node_modules --exclude tests --exclude .github
+          rsync -av --progress ./ ./release/${{ github.event.repository.name }} --exclude release --exclude .git --exclude node_modules --exclude tests --exclude .github --exclude dist --exclude "*.zip"
 
       - name: Create zip archive
         run: |

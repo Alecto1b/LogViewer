@@ -10,6 +10,8 @@ final class DownloadLogController
 {
     public function __invoke(Request $request): BinaryFileResponse
     {
+        abort_unless(auth()->user()?->can('viewAny', \App\Models\Plugin::class) ?? false, 403);
+
         $token = $request->query('file');
         $logFile = LogFile::fromToken(is_string($token) ? $token : null);
 

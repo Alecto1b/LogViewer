@@ -32,7 +32,7 @@ class LogViewerPlugin extends Plugin
 
     public function getPluginPage(): ?string
     {
-        if (! LogViewerPage::canAccess()) {
+        if (! (auth()->user()?->can('viewAny', \App\Models\Plugin::class) ?? false)) {
             return null;
         }
 
@@ -51,7 +51,7 @@ class LogViewerPlugin extends Plugin
             }
         }
 
-        Route::middleware(['web', 'auth', 'admin', 'signed'])
+        Route::middleware(['web', 'auth', 'signed'])
             ->get('/plugin/log-viewer/download', DownloadLogController::class)
             ->name(static::DOWNLOAD_ROUTE);
 
